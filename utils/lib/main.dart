@@ -1,6 +1,7 @@
 import 'dart:ffi';
 
 import 'package:flutter/material.dart';
+import 'package:utils/database_helper.dart';
 
 void main() {
   runApp(const UtilApp());
@@ -31,37 +32,53 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  test() {
+    DatabaseHelper().insert({
+      'name': '...',
+      'age': 22,
+    }).then((value) {
+      print('object $value');
+    });
+
+    DatabaseHelper().queryAllRows().then((value) {
+      print('object $value');
+    });
+  }
+
+  final DatabaseHelper _dbHelper = DatabaseHelper();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: ListView(
-        children: _buildBody(),
+      body: FutureBuilder(
+        future: _dbHelper.queryAllRows(),
+        builder: (context, snapshot) {
+          List<Map<String, dynamic>> data = snapshot.data ?? [];
+          return ListView(
+            children: _buildBody(data),
+          );
+        },
       ),
     );
   }
 
-  final Map<String, Map<String, List<int>>> _total = {};
-
-  _buildBody() {
+  _buildBody(data) {
     List<Widget> widgets = [];
     widgets.addAll(_buildCity());
     widgets.addAll(_buildCategory());
     widgets.addAll(_buildExpense());
+
     widgets.add(
       Padding(
         padding: const EdgeInsets.all(8.0),
         child: GestureDetector(
           onTap: () {
-            if (_total[_selectedCity] == null) {
-              _total[_selectedCity] = {};
-            }
-            var city = _total[_selectedCity];
-            if (city![_selectedCategory] == null) {
-              city[_selectedCategory] = [];
-            }
-            var category = city[_selectedCategory];
-            category!.add(1);
-            setState(() {});
+            _dbHelper.insert({
+              'name': '...',
+              'age': 22,
+            }).then((_) {
+              setState(() {});
+            });
           },
           child: Container(
             alignment: Alignment.center,
@@ -83,31 +100,6 @@ class _HomePageState extends State<HomePage> {
       ),
     );
 
-    Map<String, int> result = {};
-    var total = 0;
-    _total.forEach(
-      (city, content) {
-        content.forEach(
-          (category, expense) {
-            for (var ele in expense) {
-              if (result[city] == null) {
-                result[city] = ele;
-              } else {
-                result[city] = result[city]! + ele;
-              }
-              if (result[category] == null) {
-                result[category] = ele;
-              } else {
-                result[category] = result[category]! + ele;
-              }
-              total = total + ele;
-            }
-          },
-        );
-      },
-    );
-
-    widgets.add(Text('总计: $total元'));
     widgets.add(
       const Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -118,18 +110,10 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
     );
-    result.forEach((key, value) {
-      widgets.add(
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            Text(key),
-            Text('$value元'),
-            Text('${value * 100 ~/ total}%'),
-          ],
-        ),
-      );
-    });
+
+    for (var ele in data) {
+      widgets.add(Text(ele.toString()));
+    }
 
     return widgets;
   }
