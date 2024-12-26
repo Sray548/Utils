@@ -34,8 +34,10 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE my_table (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        age INTEGER NOT NULL
+        city TEXT NOT NULL,
+        category TEXT NOT NULL,
+        expense REAL NOT NULL,
+        time TEXT NOT NULL
       )
     ''');
   }
@@ -59,6 +61,8 @@ class DatabaseHelper {
 
   Future<int> delete(int id) async {
     Database db = await database;
-    return await db.delete('my_table', where: 'id = ?', whereArgs: [id]);
+    await db.delete('my_table', where: 'id = ?', whereArgs: [id]);
+    return await db
+        .rawDelete("DELETE FROM sqlite_sequence WHERE name=?", ['my_table']);
   }
 }

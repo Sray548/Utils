@@ -32,20 +32,16 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  test() {
-    DatabaseHelper().insert({
-      'name': '...',
-      'age': 22,
-    }).then((value) {
-      print('object $value');
-    });
-
-    DatabaseHelper().queryAllRows().then((value) {
-      print('object $value');
-    });
-  }
-
   final DatabaseHelper _dbHelper = DatabaseHelper();
+
+  final TextEditingController _expenseController =
+      TextEditingController(text: '0');
+
+  @override
+  void dispose() {
+    _expenseController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,34 +67,96 @@ class _HomePageState extends State<HomePage> {
     widgets.add(
       Padding(
         padding: const EdgeInsets.all(8.0),
-        child: GestureDetector(
-          onTap: () {
-            _dbHelper.insert({
-              'name': '...',
-              'age': 22,
-            }).then((_) {
-              setState(() {});
-            });
-          },
-          child: Container(
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: Colors.red,
-              borderRadius: BorderRadius.circular(5.0),
-            ),
-            child: const Padding(
-              padding: EdgeInsets.all(10.0),
-              child: Text(
-                '添加',
-                style: TextStyle(
-                  color: Colors.white,
+        child: Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  _dbHelper.insert({
+                    'city': _selectedCity,
+                    'category': _selectedCategory,
+                    'expense': double.parse(_expenseController.text),
+                    'time': DateTime.now().toString(),
+                  }).then((_) {
+                    setState(() {});
+                  });
+                },
+                child: Container(
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(5.0),
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.all(10.0),
+                    child: Text(
+                      '添加',
+                      style: TextStyle(
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
+            const SizedBox(
+              width: 15,
+            ),
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  _dbHelper.queryAllRows().then((allRows) {
+                    for (var ele in allRows) {
+                      _dbHelper.delete(ele['id']).then((_) {
+                        setState(() {});
+                      });
+                    }
+                  });
+                },
+                child: Container(
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(5.0),
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.all(10.0),
+                    child: Text(
+                      '清空',
+                      style: TextStyle(
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
+
+    Map<String, num> result = {};
+    num total = 0;
+    for (var ele in data) {
+      total = total + ele['expense'];
+      var category = ele['category'];
+      var expense = ele['expense'];
+      if (result[category] == null) {
+        result[category] = expense;
+      } else {
+        result[category] = result[category]! + expense;
+      }
+
+      var city = ele['city'];
+      if (result[city] == null) {
+        result[city] = expense;
+      } else {
+        result[city] = result[city]! + expense;
+      }
+    }
+
+    widgets.add(Text('总计花费 $total 元'));
 
     widgets.add(
       const Row(
@@ -111,8 +169,36 @@ class _HomePageState extends State<HomePage> {
       ),
     );
 
+    Map.fromEntries(
+      result.entries.toList()
+        ..sort(
+          (a, b) => b.value.compareTo(a.value),
+        ),
+    ).forEach((key, value) {
+      widgets.add(
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            Text(key),
+            Text(value.toStringAsFixed(2)),
+            Text('${(value / total * 100).toStringAsFixed(2)}%'),
+          ],
+        ),
+      );
+    });
+
     for (var ele in data) {
-      widgets.add(Text(ele.toString()));
+      widgets.add(
+        GestureDetector(
+          onTap: () {
+            _dbHelper.delete(ele['id']).then((_) {
+              setState(() {});
+            });
+          },
+          child: Text(
+              '${ele['city']}, ${ele['category']}, ${ele['expense']}元, ${ele['time']}'),
+        ),
+      );
     }
 
     return widgets;
@@ -125,7 +211,6 @@ class _HomePageState extends State<HomePage> {
 
   _buildCity() {
     List<Widget> widgets = [];
-    widgets.add(const Divider());
     widgets.add(
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -154,7 +239,6 @@ class _HomePageState extends State<HomePage> {
 
   _buildCategory() {
     List<Widget> widgets = [];
-    widgets.add(const Divider());
     widgets.add(
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -183,10 +267,11 @@ class _HomePageState extends State<HomePage> {
 
   _buildExpense() {
     List<Widget> widgets = [];
-    widgets.add(const Divider());
     widgets.add(
-      const TextField(
-        decoration: InputDecoration(labelText: '人民币'),
+      TextField(
+        controller: _expenseController,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: const InputDecoration(labelText: '人民币'),
       ),
     );
     return widgets;
